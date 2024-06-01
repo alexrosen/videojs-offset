@@ -99,22 +99,31 @@ const offset = function(options) {
     };
 
     Player.prototype.currentTime = function(seconds) {
-      if (seconds !== undefined) {
-        if (this._offsetStart !== undefined) {
-          return Player.__super__.currentTime
-            .call(this, seconds + this._offsetStart);
+        if (this._inCurrentTimeCall) {
+            return Player.__super__.currentTime.apply(this, arguments);
         }
-        return Player.__super__.currentTime.call(this, seconds);
-      }
+        this._inCurrentTimeCall = true;
 
-      if (this._offsetStart !== undefined) {
-        const t = Player.__super__.currentTime
-          .apply(this) - this._offsetStart;
+        if (seconds !== undefined) {
+            if (this._offsetStart !== undefined) {
+                var e = Player.__super__.currentTime.call(this, seconds + this._offsetStart);
+                this._inCurrentTimeCall = false;
+                return e;
+            }
+            var e = Player.__super__.currentTime.call(this, seconds);
+            this._inCurrentTimeCall = false;
+            return e;
+        }
 
-        this.getCache().currentTime = t;
-        return t;
-      }
-      return Player.__super__.currentTime.apply(this);
+        if (this._offsetStart !== undefined) {
+            const t = Player.__super__.currentTime.apply(this) - this._offsetStart;
+            this.getCache().currentTime = t;
+            this._inCurrentTimeCall = false;
+            return t;
+        }
+        var e = Player.__super__.currentTime.apply(this);
+        this._inCurrentTimeCall = false;
+        return e;
     };
 
     Player.prototype.remainingTime = function() {
