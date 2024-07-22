@@ -32,7 +32,8 @@ const onPlayerTimeUpdate = function() {
     });
 
     if (!this._restartBeginning) {
-      this.currentTime(this._offsetEnd - this._offsetStart);
+      // Removed to avoid firing after the 'ended' event - https://github.com/cladera/videojs-offset/issues/68
+      // this.currentTime(this._offsetEnd - this._offsetStart);
     } else {
       this.trigger('loadstart');
       this.currentTime(0);
@@ -99,31 +100,35 @@ const offset = function(options) {
     };
 
     Player.prototype.currentTime = function(seconds) {
-        if (this._inCurrentTimeCall) {
-            return Player.__super__.currentTime.apply(this, arguments);
-        }
-        this._inCurrentTimeCall = true;
+      if (this._inCurrentTimeCall) {
+        return Player.__super__.currentTime.apply(this, arguments);
+      }
+      this._inCurrentTimeCall = true;
 
-        if (seconds !== undefined) {
-            if (this._offsetStart !== undefined) {
-                var e = Player.__super__.currentTime.call(this, seconds + this._offsetStart);
-                this._inCurrentTimeCall = false;
-                return e;
-            }
-            var e = Player.__super__.currentTime.call(this, seconds);
-            this._inCurrentTimeCall = false;
-            return e;
-        }
-
+      if (seconds !== undefined) {
         if (this._offsetStart !== undefined) {
-            const t = Player.__super__.currentTime.apply(this) - this._offsetStart;
-            this.getCache().currentTime = t;
-            this._inCurrentTimeCall = false;
-            return t;
+          var e = Player.__super__.currentTime.call(this, seconds + this._offsetStart);
+
+          this._inCurrentTimeCall = false;
+          return e;
         }
-        var e = Player.__super__.currentTime.apply(this);
+        var e = Player.__super__.currentTime.call(this, seconds);
+
         this._inCurrentTimeCall = false;
         return e;
+      }
+
+      if (this._offsetStart !== undefined) {
+        const t = Player.__super__.currentTime.apply(this) - this._offsetStart;
+
+        this.getCache().currentTime = t;
+        this._inCurrentTimeCall = false;
+        return t;
+      }
+      var e = Player.__super__.currentTime.apply(this);
+
+      this._inCurrentTimeCall = false;
+      return e;
     };
 
     Player.prototype.remainingTime = function() {
