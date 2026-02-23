@@ -19,7 +19,6 @@ const onPlayerTimeUpdate = function() {
 
   if (curr < 0) {
     this.currentTime(0);
-    this.play();
   }
   if (this._offsetEnd > 0 && curr > (this._offsetEnd - this._offsetStart)) {
     this.off('timeupdate', onPlayerTimeUpdate);

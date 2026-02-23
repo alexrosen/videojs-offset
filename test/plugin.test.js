@@ -224,3 +224,64 @@ QUnit.test('rest time update handler when video reaches the end', function(asser
   );
 
 });
+
+QUnit.test('should not auto-play when current time goes below start offset while paused', function(assert) {
+
+  let triggerReady;
+  let triggerPlay;
+  let triggerTimeupdate;
+  let currentTime = 0;
+  const _thisPlayer = this.player;
+
+  this.sandbox.stub(this.player, 'ready').callsFake(function(cb) {
+    triggerReady = function() {
+      cb.call(_thisPlayer);
+    };
+  });
+
+  this.sandbox.stub(this.player, 'one')
+    .withArgs('play', sinon.match.any)
+    .callsFake(function(event, cb) {
+      triggerPlay = function() {
+        cb.call(_thisPlayer);
+      };
+    });
+
+  const addEventListenerStub = this.sandbox.stub(this.player, 'on');
+
+  addEventListenerStub.withArgs('timeupdate', sinon.match.any)
+    .callsFake(function(event, cb) {
+      triggerTimeupdate = function(curr) {
+        currentTime = curr;
+        cb.call(_thisPlayer);
+      };
+    });
+  addEventListenerStub.callThrough();
+
+  this.sandbox.stub(this.player, 'currentTime').callsFake(function(curr) {
+    if (!curr && curr !== 0) {
+      return currentTime;
+    }
+    currentTime = curr;
+  });
+
+  this.sandbox.spy(this.player, 'play');
+
+  this.player.offset({
+    start: 5,
+    end: 300
+  });
+
+  triggerReady();
+  triggerPlay();
+
+  // Simulate current time going below 0 (before start offset)
+  triggerTimeupdate(-1);
+
+  assert.equal(currentTime, 0, 'should reset current time to 0');
+  assert.ok(
+    this.player.play.notCalled,
+    'should not call play when video time goes below start offset'
+  );
+
+});
